@@ -73,9 +73,11 @@ type PageData struct {
 	PokemonList			[]string
 
 	PreviousPokemonName	string
+	PreviousPokemonID	string
 	PreviousPokemon		string
 	Image				string
 	NextPokemonName		string
+	NextPokemonID		string
 	NextPokemon			string
 	StaticSprite		string
 	Sprite				string
@@ -112,9 +114,6 @@ type QuizBox struct {
 
 var pokemonList []string
 
-var currentPokemon string
-var currentPokemonID int
-
 func main() {
 	pokemonAPI, err := http.Get("https://pokeapi.co/api/v2/pokemon/?limit=802")
 	errorCheck(err)
@@ -125,7 +124,7 @@ func main() {
 	var pokemonObject Pokemon
 	json.Unmarshal(pokemonData, &pokemonObject)
 
-	pokemonList = make([]string, 0)
+	pokemonList = make([]string, 1)
 	for i := 0; i < len(pokemonObject.Results); i++ {
 		pokemonList = append(pokemonList, pokemonObject.Results[i].Name)
 	}
@@ -153,6 +152,9 @@ func pokemon(w http.ResponseWriter, r *http.Request) {
 		SearchBox{"pokemonSearch"},
 	}
 
+	var currentPokemonID int
+	var currentPokemon string
+
 	rand.Seed(time.Now().UnixNano())
 	currentPokemonID = rand.Intn(len(pokemonList))
 	currentPokemon = strconv.Itoa(currentPokemonID)
@@ -160,18 +162,6 @@ func pokemon(w http.ResponseWriter, r *http.Request) {
 	previousImage := "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+strconv.Itoa(currentPokemonID-1)+".png"
 	image := "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+currentPokemon+".png"
 	nextImage := "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+strconv.Itoa(currentPokemonID+1)+".png"
-	if currentPokemonID <= 9 {
-		previousImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/00"+strconv.Itoa(currentPokemonID-1)+".png"
-		image = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/00"+currentPokemon+".png"
-		nextImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/00"+strconv.Itoa(currentPokemonID+1)+".png"
-	} else if currentPokemonID <= 99 {
-		previousImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/0"+strconv.Itoa(currentPokemonID-1)+".png"
-		image = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/0"+currentPokemon+".png"
-		nextImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/0"+strconv.Itoa(currentPokemonID+1)+".png"
-	}
-	if currentPokemonID == 1 {
-		previousImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+strconv.Itoa(len(pokemonList))+".png"
-	}
 
 	information, err := http.Get("https://pokeapi.co/api/v2/pokemon/"+currentPokemon+"/")
 	errorCheck(err)
@@ -182,21 +172,10 @@ func pokemon(w http.ResponseWriter, r *http.Request) {
 	var informationObject Information
 	json.Unmarshal(informationData, &informationObject)
 
-	staticSprite := informationObject.Sprite.FrontDefault
+	staticSprite := "http://play.pokemonshowdown.com/sprites/xydex/"+informationObject.Name+".png"
 	sprite := "http://play.pokemonshowdown.com/sprites/xyani/"+informationObject.Name+".gif"
-	staticShiny := informationObject.Sprite.FrontShiny
+	staticShiny := "http://play.pokemonshowdown.com/sprites/xydex-shiny/"+informationObject.Name+".png"
 	shinySprite := "https://play.pokemonshowdown.com/sprites/xyani-shiny/"+informationObject.Name+".gif"
-
-	specie, err := http.Get("https://pokeapi.co/api/v2/pokemon-species/"+currentPokemon+"/")
-	errorCheck(err)
-
-	specieData, err := ioutil.ReadAll(specie.Body)
-	errorCheck(err)
-
-	var specieObject Specie
-	json.Unmarshal(specieData, &specieObject)
-
-	specieColor := specieObject.Color.Name
 
 	calcHeight := float64(informationObject.Height) / 10
 	calcWeight := float64(informationObject.Weight) / 10
@@ -211,8 +190,6 @@ func pokemon(w http.ResponseWriter, r *http.Request) {
 	var pokemonSecondaryType string
 	var pokemonPrimaryTypeColor string
 	var pokemonSecondaryTypeColor string
-
-
 
 	pokemonPrimaryType = pokemonTypeList[0]
 	if pokemonTypeList[0] == "Normal" { //|| pokemonTypeList[1] == "[Normal]"
@@ -311,23 +288,26 @@ func pokemon(w http.ResponseWriter, r *http.Request) {
 		pokemonAbilityList = append(pokemonAbilityList, "[" +strings.Title(informationObject.Ability[i].Ability.AbilityName)+ "]")
 	}
 
-	tmpl := template.Must(template.ParseFiles("C:/GitHub/Team-Lenny/obligatorisk-oppgave-4/src/index.html"))
+	tmpl := template.Must(template.ParseFiles("Pokemon/src/index.html"))
 
 	pokemonTemplateData := PageData {
 		PageTitle: "Pokemon GO(lang)",
 		Search: searchBox,
-		PreviousPokemonName: strings.Title(pokemonList[currentPokemonID-2]) + " #" + strconv.Itoa(currentPokemonID-1),
+
+		Name: titleName,
+		ID: informationObject.ID,
+		PreviousPokemonName: strings.Title(pokemonList[currentPokemonID-1]),
+		PreviousPokemonID: " #" + strconv.Itoa(currentPokemonID-1),
 		PreviousPokemon: previousImage,
 		Image: image,
-		NextPokemonName: strings.Title(pokemonList[currentPokemonID]) + " #" + strconv.Itoa(currentPokemonID+1),
+		NextPokemonName: strings.Title(pokemonList[currentPokemonID+1]),
+		NextPokemonID: " #" + strconv.Itoa(currentPokemonID+1),
 		NextPokemon: nextImage,
 		StaticSprite: staticSprite,
 		Sprite: sprite,
 		StaticShiny: staticShiny,
 		ShinySprite: shinySprite,
 
-		ID: informationObject.ID,
-		Name: titleName,
 		Height: calcHeight,
 		Weight: calcWeight,
 		PrimaryType: pokemonPrimaryType,
@@ -336,7 +316,7 @@ func pokemon(w http.ResponseWriter, r *http.Request) {
 		SecondaryTypeColor: pokemonSecondaryTypeColor,
 		Abilities: pokemonAbilityList,
 
-		Color: specieColor,
+		//Color: specieColor,
 	}
 
 	tmpl.Execute(w, pokemonTemplateData)
@@ -347,13 +327,16 @@ func search(w http.ResponseWriter, r *http.Request) {
 		SearchBox{"pokemonSearch"},
 	}
 
+	var currentSearchResult string
+	var currentSearchID int
+
 	r.ParseForm()
 	searchResult := r.Form.Get("pokemonSearch")
-	lowerSearchResult := strings.ToLower(searchResult)
+	currentSearchResult = strings.ToLower(searchResult)
 
 	errorMessage := "En ukjent feil har oppstått!"
 	searchID := "0"
-	maxSearch, _ := strconv.Atoi(lowerSearchResult)
+	maxSearch, _ := strconv.Atoi(currentSearchResult)
 	if maxSearch > len(pokemonList) {
 		errorMessage = "Du kan ikke skrive inn mer enn " + strconv.Itoa(len(pokemonList)) + "!"
 		searchID = "1"
@@ -362,13 +345,13 @@ func search(w http.ResponseWriter, r *http.Request) {
 		searchID = "1"
 	} else {
 		for i := range pokemonList {
-			if lowerSearchResult == pokemonList[i] {
+			if currentSearchResult == pokemonList[i] {
 				errorMessage = ""
-				searchID = strconv.Itoa(i + 1)
+				searchID = strconv.Itoa(i)
 				break
-			} else if _, err := strconv.Atoi(lowerSearchResult); err == nil {
+			} else if _, err := strconv.Atoi(currentSearchResult); err == nil {
 				errorMessage = ""
-				searchID = lowerSearchResult
+				searchID = currentSearchResult
 				break
 			}
 		}
@@ -378,24 +361,17 @@ func search(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	searchINT, _ := strconv.Atoi(searchID)
-	previousImage := "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+strconv.Itoa(searchINT-1)+".png"
-	previousName := strings.Title(pokemonList[searchINT-1])
+	currentSearchID, _ = strconv.Atoi(searchID)
+	previousImage := "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+strconv.Itoa(currentSearchID-1)+".png"
 	image := "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+searchID+".png"
-	nextImage := "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+strconv.Itoa(searchINT+1)+".png"
-	nextName := strings.Title(pokemonList[searchINT])
-	if searchINT <= 9 {
-		previousImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/00"+strconv.Itoa(searchINT-1)+".png"
-		image = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/00"+searchID+".png"
-		nextImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/00"+strconv.Itoa(searchINT+1)+".png"
-	} else if searchINT <= 99 {
-		previousImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/0"+strconv.Itoa(searchINT-1)+".png"
-		image = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/0"+searchID+".png"
-		nextImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/0"+strconv.Itoa(searchINT+1)+".png"
+	nextImage := "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+strconv.Itoa(currentSearchID+1)+".png"
+	if currentSearchID <= 9 {
+
+	} else if currentSearchID <= 99 {
+
 	}
 	if searchID == "1" {
 		previousImage = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/"+strconv.Itoa(len(pokemonList))+".png"
-		previousName = "Marshadow"
 	}
 
 	information, err := http.Get("https://pokeapi.co/api/v2/pokemon/"+searchID+"/")
@@ -407,18 +383,10 @@ func search(w http.ResponseWriter, r *http.Request) {
 	var informationObject Information
 	json.Unmarshal(informationData, &informationObject)
 
-	staticSprite := informationObject.Sprite.FrontDefault
-	sprite := "http://www.pkparaiso.com/imagenes/xy/sprites/animados/"+informationObject.Name+".gif"
-	staticShiny := informationObject.Sprite.FrontShiny
-	shinySprite := "http://www.pkparaiso.com/imagenes/xy/sprites/animados-shiny/"+informationObject.Name+".gif"
-	if searchINT <= 721 {
-		sprite = "http://www.pkparaiso.com/imagenes/xy/sprites/animados/"+informationObject.Name+".gif"
-		staticShiny = informationObject.Sprite.FrontShiny
-		shinySprite = "http://www.pkparaiso.com/imagenes/xy/sprites/animados-shiny/"+informationObject.Name+".gif"
-	} else {
-		sprite = informationObject.Sprite.FrontDefault
-		shinySprite = informationObject.Sprite.FrontShiny
-	}
+	staticSprite := "http://play.pokemonshowdown.com/sprites/xydex/"+informationObject.Name+".png"
+	sprite := "http://play.pokemonshowdown.com/sprites/xyani/"+informationObject.Name+".gif"
+	staticShiny := "http://play.pokemonshowdown.com/sprites/xydex-shiny/"+informationObject.Name+".png"
+	shinySprite := "https://play.pokemonshowdown.com/sprites/xyani-shiny/"+informationObject.Name+".gif"
 
 	calcHeight := float64(informationObject.Height) / 10
 	calcWeight := float64(informationObject.Weight) / 10
@@ -531,24 +499,27 @@ func search(w http.ResponseWriter, r *http.Request) {
 		pokemonAbilityList = append(pokemonAbilityList, "[" +strings.Title(informationObject.Ability[i].Ability.AbilityName)+ "]")
 	}
 
-	tmpl := template.Must(template.ParseFiles("C:/GitHub/Team-Lenny/obligatorisk-oppgave-4/src/index.html"))
+	tmpl := template.Must(template.ParseFiles("Pokemon/src/index.html"))
 
 	pokemonTemplateData := PageData {
 		PageTitle: "Søk",
 		Search: searchBox,
 		Error: errorMessage,
-		PreviousPokemonName: previousName,
+
+		Name: titleName,
+		ID: informationObject.ID,
+		PreviousPokemonName: strings.Title(pokemonList[currentSearchID-1]),
+		PreviousPokemonID: " #" + strconv.Itoa(currentSearchID-1),
 		PreviousPokemon: previousImage,
 		Image: image,
-		NextPokemonName: nextName,
+		NextPokemonName: strings.Title(pokemonList[currentSearchID+1]),
+		NextPokemonID: " #" + strconv.Itoa(currentSearchID+1),
 		NextPokemon: nextImage,
 		StaticSprite: staticSprite,
 		Sprite: sprite,
 		StaticShiny: staticShiny,
 		ShinySprite: shinySprite,
 
-		ID: informationObject.ID,
-		Name: titleName,
 		Height: calcHeight,
 		Weight: calcWeight,
 		PrimaryType: pokemonPrimaryType,
