@@ -12,7 +12,7 @@
 *.out
 
 # Assets
-assets/*.go
+assets/bindata.go
 
 #.idea
 .idea

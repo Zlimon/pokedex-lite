@@ -14,9 +14,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/pokedex-lite/assets"
-	"github.com/pokedex-lite/structs"
-	"github.com/pokedex-lite/helper"
+	"github.com/Pokedex-Lite/assets"
+	"github.com/Pokedex-Lite/structs"
+	"github.com/Pokedex-Lite/helper"
 	"github.com/gorilla/mux"
 )
 
