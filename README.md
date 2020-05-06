@@ -8,11 +8,14 @@ To initialize the templates, get the **jteeuwen/go-bindata** library by running:
 
 `go get -u github.com/jteeuwen/go-bindata/...`
 
+
 *This will generate a static file with all the HTML templates and CSS information*
 
-Run this to genereate the file (do this in the root directory):
+
+Run this to generate the file (do this in the root directory):
 
 `go-bindata -o=assets/bindata.go --nocompress --nometadata --pkg=assets templates/... static/...`
+
 
 Run `go build` to start the local web server
 
