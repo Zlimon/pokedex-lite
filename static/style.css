@@ -28,3 +28,7 @@ p {
     flex-flow: row wrap;
     justify-content: space-around;
 }
+
+.inactive {
+    color: #2a4e89;
+}
